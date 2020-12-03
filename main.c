@@ -9,7 +9,7 @@ void main() {
     setbuf(stdout, 0); //TODO REMOVE THIS, ONLY HERE TO FIX CLION'S BUFFER BUG
     int boardSize[2]; /*to be used for board size in [height,width] format*/
     requestGameVariation(boardSize,2);
-    printf("height = %d\n width = %d",boardSize[0],boardSize[1]); //TODO BROKEN AF fix this
+    printf("height = %d\nwidth = %d",boardSize[0],boardSize[1]); //TODO BROKEN AF fix this
 }
 
 void requestGameVariation(int boardSize[], int arraySize){
