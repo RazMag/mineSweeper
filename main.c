@@ -1,18 +1,29 @@
 #include <stdio.h>
 #define _CRT_SECURE_NO_WARNINGS
 
-void requestGameVariation(int[], int arraySize);
+void requestGameVariation(int[], int);
 void requestCustomBoard(int[],int);
+void runGame(int[],int);
+
+//TODO things to consider,
+// 1. dont pass boardSize size to functions? its supposed to be 2 always.
+// 2. how many mines are going to be placed? my guess is x,y average, but difficulty levels might be incorporated
+// 3. when placing mines consider the following: have a counter,while counter<targetMineAmount gen a mine try to place mine, is it taken? if not counter++ otherwise place the mine
 
 void main() {
     /*TODO ADD "README"*/
     setbuf(stdout, 0); //TODO REMOVE THIS, ONLY HERE TO FIX CLION'S BUFFER BUG
     int boardSize[2]; /*to be used for board size in [height,width] format*/
     requestGameVariation(boardSize,2);
-    printf("height = %d\nwidth = %d",boardSize[0],boardSize[1]); //TODO BROKEN AF fix this
+    if(boardSize[0]!=0) /*check for no game signal - boardsize [0,0]*/
+    {
+        runGame(boardSize,2);
+    }
+    printf("height = %d\nwidth = %d",boardSize[0],boardSize[1]); //TODO REMOVE - HERE FOR DEBUGGING
 }
 
 void requestGameVariation(int boardSize[], int arraySize) {
+    //TODO ADD READ ME
     /*print game variations*/
     int menuChoice = 0; /*to be used for the players choice in the menu*/
     char boardSizeSetFlag = 'F'; /*flag to be used in the board size input loop*/
@@ -74,3 +85,7 @@ void requestCustomBoard(int boardSize[],int arraySize){
     }
 }
 
+void runGame(int boardSize[], int arraySize){
+    int gameBoard[boardSize[1]][boardSize[0]]; /*create a board the with the correct height/width */
+    //TODO keep going im too tired
+}
