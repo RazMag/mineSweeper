@@ -1,3 +1,0 @@
-C:/Users/razma/CLionProjects/mineSweeper/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-C:/Users/razma/CLionProjects/mineSweeper/cmake-build-debug/CMakeFiles/mineSweeper.dir
-C:/Users/razma/CLionProjects/mineSweeper/cmake-build-debug/CMakeFiles/edit_cache.dir

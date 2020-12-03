@@ -1,3 +1,0 @@
-C:\Users\razma\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\203.5981.166\bin\cmake\win\bin\cmake.exe -E rm -f CMakeFiles\mineSweeper.dir/objects.a
-C:\PROGRA~1\MINGW-~1\X86_64~1.0-P\mingw64\bin\ar.exe cr CMakeFiles\mineSweeper.dir/objects.a @CMakeFiles\mineSweeper.dir\objects1.rsp
-C:\PROGRA~1\MINGW-~1\X86_64~1.0-P\mingw64\bin\gcc.exe -g   -Wl,--whole-archive CMakeFiles\mineSweeper.dir/objects.a -Wl,--no-whole-archive  -o mineSweeper.exe -Wl,--out-implib,libmineSweeper.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\mineSweeper.dir\linklibs.rsp
