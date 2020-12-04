@@ -3,26 +3,29 @@
 #include <time.h> /*time() is broken without this header*/
 
 #define _CRT_SECURE_NO_WARNINGS
-
-#define MAXROWS 23
-#define MAXCOLUMNS 23
+#define MAXROWS 23 /*project definitions state a max of 22 rows*/
+#define MAXCOLUMNS 23 /*project definitions state a max of 22 columns*/
+#define DEBUG
 
 
 typedef struct boardDimensionsStruct { // Struct used to refer to the size of the board that is played on.
     int width;
     int height;
-} boardDimensionsType;
+} boardDimensionsType; //TODO can this be merged with coordinate struct (the answer is yes.) get on it!
+typedef struct coordinateStruct {
+    int column;
+    int row;
+}coordinateType;
+
 
 boardDimensionsType requestGameVariation(boardDimensionsType);
 boardDimensionsType requestCustomBoard(boardDimensionsType);
 void runGame(boardDimensionsType);
 void plantMines(char[MAXCOLUMNS][MAXROWS], int, boardDimensionsType boardDimensions);
-struct coordinate generateMineCoordinate(boardDimensionsType boardDimensions);
+coordinateType generateMineCoordinate(boardDimensionsType boardDimensions);
 void clearBoard(char[MAXCOLUMNS][MAXROWS]);
-struct coordinate {
-    int column;
-    int row;
-};
+void insertNumbers(char[MAXCOLUMNS][MAXROWS], boardDimensionsType);
+int calculateAmountOfNearbyMines(coordinateType numberPosition, char[MAXCOLUMNS][MAXROWS],boardDimensionsType);
 
 //TODO things to consider,
 // 1. dont pass boardSize size to functions? its supposed to be 2 always. - NO
@@ -31,15 +34,20 @@ struct coordinate {
 
 void main() {
     /*TODO ADD "README"*/
-    setbuf(stdout, 0); //TODO REMOVE THIS, ONLY HERE TO FIX CLION'S BUFFER BUG
+#ifdef DEBUG 
+    setbuf(stdout, 0);
+#endif //TODO REMOVE THIS, ONLY HERE TO FIX CLION'S BUFFER BUG
     srand(time(NULL)); /*seed the random function for future use*/
-    boardDimensionsType boardDimensions; /*to be used for board size in [height,width] format. WILL ALWAYS BE OF SIZE 2. GAME BREAKS WHEN GOING 3D*/
-    boardDimensions = requestGameVariation(boardDimensions);
+    boardDimensionsType boardDimensions;/*struct used for playing board dimensions (out of the max possible size)*/
+    boardDimensions.width=boardDimensions.height=0; /*initialize boardDimensions*/
+    boardDimensions = requestGameVariation(boardDimensions); /*get wanted board size*/
     if (boardDimensions.height != 0) /*check for no game signal - boardDimensions.height = 0 */
     {
         runGame(boardDimensions); //TODO FIX
     }
+#ifdef DEBUG
     printf("height = %d\nwidth = %d", boardDimensions.height, boardDimensions.width); //TODO REMOVE - HERE FOR DEBUGGING
+#endif
 }
 
 boardDimensionsType requestGameVariation(boardDimensionsType boardDimensions) {
@@ -88,7 +96,7 @@ boardDimensionsType requestGameVariation(boardDimensionsType boardDimensions) {
 
 boardDimensionsType requestCustomBoard(boardDimensionsType boardDimensions) {
     /* receives boardDimensions struct, requests input from user for custom board size
-     * makes sure inpyt is valid (width and height between 1 and 23)
+     * makes sure input is valid (width and height between 1 and 23)
      * set board size struct according to input
      * sets size to 0X0 on invalid input*/
     /*#WILL NOT RUN IN PART A#*/
@@ -102,24 +110,16 @@ boardDimensionsType requestCustomBoard(boardDimensionsType boardDimensions) {
         boardDimensions.height = boardHeight;
         boardDimensions.width = boardWidth;
     }
+    return boardDimensions;
 }
 
 void runGame(boardDimensionsType boardDimensions) {
     char gameBoard[MAXCOLUMNS][MAXROWS]; /*create a board the with max height&width */
     clearBoard(gameBoard); /*set all coordinates in the matrix to ' '*/
     int mineAmount = 8; /*set to 8 to fit part A requirements, will be calculated dynamically in the future*/
-    plantMines(gameBoard, mineAmount, boardDimensions);
-}
-
-void plantMines(char gameBoard[MAXCOLUMNS][MAXROWS], int mineAmount, boardDimensionsType boardDimensions) {
-    struct coordinate currentMinePosition; /*will be used to refer to a mine's position on the board*/
-    while (mineAmount > 0) { //plant mines until wanted amount is reached
-        currentMinePosition = generateMineCoordinate(boardDimensions);
-        if (gameBoard[currentMinePosition.column][currentMinePosition.row] != 'M') {
-            gameBoard[currentMinePosition.column][currentMinePosition.row] = 'M';
-            mineAmount--;
-        }
-    }
+    plantMines(gameBoard, mineAmount, boardDimensions); /*plans mines in the playing board*/
+    insertNumbers(gameBoard,boardDimensions);
+#ifdef DEBUG
     int i, j; //TODO DELETE THIS HERE FOR DEBUGGING
     for (i = 0; i < 8; i++) {
         for (j = 0; j < 8; j++) {
@@ -127,10 +127,22 @@ void plantMines(char gameBoard[MAXCOLUMNS][MAXROWS], int mineAmount, boardDimens
         }
         printf("\n");
     }
+#endif
 }
 
-struct coordinate generateMineCoordinate(boardDimensionsType boardDimensions) {
-    struct coordinate mineToReturn;
+void plantMines(char gameBoard[MAXCOLUMNS][MAXROWS], int mineAmount, boardDimensionsType boardDimensions) {
+    coordinateType currentMinePosition; /*will be used to refer to a mine's position on the board*/
+    while (mineAmount > 0) { //plant mines until wanted amount is reached
+        currentMinePosition = generateMineCoordinate(boardDimensions); /*generate a possible coordinates for a mine inside of the playing size*/
+        if (gameBoard[currentMinePosition.column][currentMinePosition.row] != 'M') { /*is this spot already "mined"?*/
+            gameBoard[currentMinePosition.column][currentMinePosition.row] = 'M';/*if not "mined", plant a mine*/
+            mineAmount--;/*one less mine to plant*/
+        }
+    }
+}
+
+coordinateType generateMineCoordinate(boardDimensionsType boardDimensions) {
+    coordinateType mineToReturn;
     mineToReturn.column = rand() % boardDimensions.width;
     mineToReturn.row = rand() % boardDimensions.height;
     printf("%d %d\n", mineToReturn.column, mineToReturn.row);
@@ -138,11 +150,54 @@ struct coordinate generateMineCoordinate(boardDimensionsType boardDimensions) {
 }
 
 void clearBoard(char gameBoard[MAXCOLUMNS][MAXROWS]) {
-    /*receives matrix with a maximum of [MAXCOLUMNS][MAXROWS] and fills it with ' '*/
+    /*receives matrix with a maximum of [MAXCOLUMNS][MAXROWS] and fills it with '\0'*/
     int currentColumn, currentRow;
     for (currentColumn = 0; currentColumn < MAXCOLUMNS; currentColumn++) {
         for (currentRow = 0; currentRow < MAXROWS; currentRow++) {
             gameBoard[currentColumn][currentRow] = '\0';
         }
     }
+}
+
+void insertNumbers(char gameBoard[MAXCOLUMNS][MAXROWS], boardDimensionsType boardDimensions){ //TODO IM A STUPID FUNCTION THAT PRINTS SMILEY FACES
+    int columnCounter = 0; /*start at 0X0 */
+    int rowCounter = 0; /*start at 0X0 */
+    int amountOfNearbyMines = 0;
+    coordinateType currentPosition; /*coordinate that will be passed to number calculating function*/
+    currentPosition.column = currentPosition.row = 0;
+    for (columnCounter = 0; columnCounter < boardDimensions.width; columnCounter++) {
+        for (rowCounter = 0; rowCounter < boardDimensions.height; rowCounter++) {
+            if (gameBoard[columnCounter][rowCounter] != 'M') { /*if current position is not a mine go calc a number*/
+                currentPosition.row=rowCounter;
+                currentPosition.column=columnCounter;
+                amountOfNearbyMines = calculateAmountOfNearbyMines(currentPosition, gameBoard,boardDimensions);
+                if (amountOfNearbyMines>0){
+                    gameBoard[columnCounter][rowCounter]=amountOfNearbyMines;
+                }
+                else{
+                    gameBoard[columnCounter][rowCounter]=' ';
+                }
+            }
+        }
+    }
+}
+
+int calculateAmountOfNearbyMines(coordinateType numberPosition, char gameBoard[MAXCOLUMNS][MAXROWS],boardDimensionsType boardDimensions){
+    int amountOfNearbyMines = 0;
+    int nearbySpaceColumn = numberPosition.column-1; /*start scanning from left of the number's position*/
+    int nearbySpaceRow = numberPosition.row-1; /*start scanning from above the number's position*/
+    while(nearbySpaceColumn<= numberPosition.column+1){ /*stop scanning to the right of the number's position*/
+        if (nearbySpaceColumn>=0&&nearbySpaceColumn<boardDimensions.width){/*not under 0 ("before" array start) or above boardDimensions.width (playing size width)*/
+            while (nearbySpaceRow<= numberPosition.row+1) {
+                if (nearbySpaceRow >= 0 && nearbySpaceRow <boardDimensions.height) {
+                /*not under 0 ("before" array start) or above boardDimensions.height (playing size height)*/
+                if(nearbySpaceColumn!=numberPosition.column&&nearbySpaceRow!=numberPosition.row)/*make sure this isn't the number's position*/
+                    amountOfNearbyMines++;
+                }
+                nearbySpaceRow++;
+            }
+        }
+        nearbySpaceColumn++;
+    }
+    return amountOfNearbyMines;
 }
