@@ -1,14 +1,14 @@
 /*Raz Magori - 207054883*/
 
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h> /*time() is broken without this header*/
 
-#define _CRT_SECURE_NO_WARNINGS
+
 #define MAXCOLUMNS 23 /*project definitions state a max of 22 rows*/
 #define MAXROWS 23 /*project definitions state a max of 22 columns*/
 #define MINEAMOUNT 8 /*currently static for part A will be dynamic in the future*/
-//#define DEBUG //TODO DELETE
 #define NUMTOASCII 48 /* used to convert a number into it's ASCII representation for printing*/
 
 /*Function definition*/
@@ -29,7 +29,7 @@ void main() {
      * 0 >= char > 10 - this space is visible and of value "char"
      * 10 >= char > 100 - hidden space with value (char%10)-1 so that "char" = 10 is a hidden "0" and "char" = 90 is a hidden "8"
      * char == 100 - this space is a mine.
-     * I chose to use a char matrix since char is 8bits vs the int's 32, thus being 4 times as memory efficient for this use. //TODO leave this in
+     *
      * Game loop:
      * request game board size in part A of the project, only 8x8 is supported.
      * request turn coordinates (line column)
@@ -41,22 +41,15 @@ void main() {
      * for this project's purposes a XY int is an int containing coordinates as such:
      * amount of 100s is the Y value
      * amount of 1s under 100 is the X value*/
-    int t = time(NULL);
-    srand(t);  /*seed the random function for future use*/
-    printf("motherfucking seed: 0x%04X\n", t);
-    setbuf(stdout, 0);
-    #ifdef DEBUG
-    t = 0x5FCEA8BB;
-    srand(t);
-    #endif //TODO REMOVE THIS, ONLY HERE TO FIX CLION'S BUFFER BUG
-    /*size of the playing field. will be an int with amount of 100's as the board height the boardSize%100 as the board width (an YX int for this code's purposes)*/
+    srand(time(NULL));  /*seed the random function for future use*/
+    /*size of the playing field. will be an int with amount of 100's as the board height the boardSize%100 as the board width (a YX int for this code's purposes)*/
     int boardSize = requestGameVariation();
     if (boardSize == 0){  /*boardSize 0 meaning an exit was requested*/
         return;
     }
     int openedSpaces = 0; /* amount of opened spaces on the board, initialized to 0*/
     int currentTurn; /* current Turn's coordinates with amount of 100's as y axis position and currentTurn%100 as the x axis position (also a YX int)*/
-    char gameBoard[MAXROWS][MAXCOLUMNS]; /* create a game board with the maximum possible size of rows and columns less relevant or part A*/
+    char gameBoard[MAXROWS][MAXCOLUMNS]; /* create a game board with the maximum possible size of rows and columns (less relevant or part A)*/
     char Loss = 'F'; /* used as condition to check if the board is in a lost state i.e a mine was selected */
     int mineAmount = MINEAMOUNT; /*amount of mines to place on the board, currently static for part A*/
     int maxTurn = ((boardSize/100)*(boardSize%100))-mineAmount; /*maximum amount of turns that can be played. amount of spaces in the playing area minus the mine amount*/
@@ -155,7 +148,7 @@ int generateMineCoordinate(int boardSize) {
 void addToSurroundingSpaces(char gameBoard[MAXROWS][MAXCOLUMNS], int mineLocation, int boardSize){
     /* receive a gameBoard char matrix and a mineLocation (as a YX int, refer to main)
      * add 10 to each adjacent, non mine space to the mineLocation
-     * within the boardSize.*/
+     * within the playing field.*/
     int column = (mineLocation/100)-1;/*start one row above the mine location*/
     int row = (mineLocation%100)-1;/*start one column to the left of the mine location*/
     for(column=column; column < (mineLocation/100)+2; column++){
