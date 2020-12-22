@@ -4,11 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h> /*time() is broken without this header*/
+#include <math.h>
+//#include <stdbool.h>
 
 
 #define MAXCOLUMNS 23 /*project definitions state a max of 22 rows*/
 #define MAXROWS 23 /*project definitions state a max of 22 columns*/
-#define MINEAMOUNT 8 /*currently static for part A will be dynamic in the future*/
 #define NUMTOASCII 48 /* used to convert a number into it's ASCII representation for printing*/
 
 /*Function definition*/
@@ -21,6 +22,8 @@ int requestTurn(char[MAXROWS][MAXCOLUMNS], int);
 char makeTurn(char[MAXROWS][MAXCOLUMNS], int);
 void printBoard(char[MAXROWS][MAXCOLUMNS], int);
 int autoTurn(char[MAXROWS][MAXCOLUMNS], int, int, int, int);
+int requestCustomBoardSize();
+int calculateMineAmount(int);
 
 void main() {
     /*Minesweeper implementation.
@@ -29,6 +32,8 @@ void main() {
      * 0 >= char > 10 - this space is visible and of value "char"
      * 10 >= char > 100 - hidden space with value (char%10)-1 so that "char" = 10 is a hidden "0" and "char" = 90 is a hidden "8"
      * char == 100 - this space is a mine.
+     *
+     * Note: game board is a char matrix since the values are between 0 and 100, I preferred to use an 8 bit char over a 32 bit int.
      *
      * Game loop:
      * request game board size in part A of the project, only 8x8 is supported.
@@ -42,6 +47,7 @@ void main() {
      * amount of 100s is the Y value
      * amount of 1s under 100 is the X value*/
     srand(time(NULL));  /*seed the random function for future use*/
+    setbuf(stdout, NULL); //TODO delete
     /*size of the playing field. will be an int with amount of 100's as the board height the boardSize%100 as the board width (a YX int for this code's purposes)*/
     int boardSize = requestGameVariation();
     if (boardSize == 0){  /*boardSize 0 meaning an exit was requested*/
@@ -51,7 +57,7 @@ void main() {
     int currentTurn; /* current Turn's coordinates with amount of 100's as y axis position and currentTurn%100 as the x axis position (also a YX int)*/
     char gameBoard[MAXROWS][MAXCOLUMNS]; /* create a game board with the maximum possible size of rows and columns (less relevant or part A)*/
     char Loss = 'F'; /* used as condition to check if the board is in a lost state i.e a mine was selected */
-    int mineAmount = MINEAMOUNT; /*amount of mines to place on the board, currently static for part A*/
+    int mineAmount = calculateMineAmount(boardSize); /*amount of mines to place on the board, currently static for part A*/
     int maxTurn = ((boardSize/100)*(boardSize%100))-mineAmount; /*maximum amount of turns that can be played. amount of spaces in the playing area minus the mine amount*/
     clearBoard(gameBoard);
     plantMines(gameBoard,mineAmount,boardSize);
@@ -67,14 +73,14 @@ void main() {
                 /*using autoTurn to expose the board on a lose, with maxTurn as a negative to make sure entire board in opened*/
                 autoTurn(gameBoard, boardSize, -maxTurn, maxTurn, openedSpaces);
                 printBoard(gameBoard,boardSize);
-                printf("~GAME OVER~\n");
+                printf("You hit a mine. ~GAME OVER~\n");
                 return;
             }
             openedSpaces++;
         }
         printBoard(gameBoard,boardSize);
     }
-    printf("YOU WIN!!!"); /*if the played didnt lose, and exited the while. he won*/
+    printf("YOU WIN!!!"); /*if the player didnt lose, and exited the while. he won*/
 }
 
 void clearBoard(char gameBoard[MAXROWS][MAXCOLUMNS]) {
@@ -92,7 +98,6 @@ int requestGameVariation() {
      * will be an int with amount of 100's as the board height
      * and the boardSize%100 as the board width
      * a YX int (refer to main)*/
-    /* print game variations */
     int menuChoice = 0; /*to be used for the player's choice in the menu*/
     char boardSizeSetFlag = 'F'; /*flag to be used in the board size input loop*/
     int boardSizeToReturn = 0; /*initialize the value that will be returned*/
@@ -113,9 +118,42 @@ int requestGameVariation() {
                 boardSizeToReturn = 808; /*board size of 8X8*/
                 boardSizeSetFlag = 'T'; /*board size is decided upon set flag to T to exit while loop*/
                 break;
+            case 2:
+                boardSizeToReturn = 1212; /*board size of 12X12*/
+                boardSizeSetFlag = 'T'; /*board size is decided upon set flag to T to exit while loop*/
+                break;
+            case 3:
+                boardSizeToReturn = 1515; /*board size of 15X15*/
+                boardSizeSetFlag = 'T'; /*board size is decided upon set flag to T to exit while loop*/
+                break;
+            case 4: /*custom board size*/
+                boardSizeToReturn = requestCustomBoardSize();
+                boardSizeSetFlag = 'T'; /*board size is decided upon set flag to T to exit while loop*/
+                break;
             default: /*anything but 0-4 inputted*/
                 printf("Invalid Choice\n"); /*request valid input*/
                 break;
+        }
+    }
+    return boardSizeToReturn;
+}
+
+int requestCustomBoardSize(){ //TODO
+    int boardSizeToReturn=0, lines, columns;
+    char validInputFlag = 'F';
+    while (validInputFlag == 'F') {
+        printf("Please enter the size of the board (Lines <= 22 and Cols <= 22): ");
+        scanf("%d %d", &lines, &columns);
+        if (lines<1 || lines >= MAXROWS){
+            printf("Number of lines is out of range!\n");
+        }
+        else if(columns<1 || columns >= MAXCOLUMNS){
+            printf("Number of columns is out of range!\n");
+        }
+        else{
+            boardSizeToReturn += lines * 100;
+            boardSizeToReturn += columns;
+            validInputFlag ='T';
         }
     }
     return boardSizeToReturn;
@@ -149,8 +187,8 @@ void addToSurroundingSpaces(char gameBoard[MAXROWS][MAXCOLUMNS], int mineLocatio
     /* receive a gameBoard char matrix and a mineLocation (as a YX int, refer to main)
      * add 10 to each adjacent, non mine space to the mineLocation
      * within the playing field.*/
-    int column = (mineLocation/100)-1;/*start one row above the mine location*/
-    int row = (mineLocation%100)-1;/*start one column to the left of the mine location*/
+    int column = (mineLocation/100)-1; /*start one column to the left of the mine location*/
+    int row = (mineLocation%100)-1; /*start one row above the mine location*/
     for(column=column; column < (mineLocation/100)+2; column++){
         if(column >=0 && column <(boardSize/100)){ /*make use column value is in in the playing field*/
             for(row = (mineLocation%100)-1; row < (mineLocation%10)+2; row++){
@@ -177,7 +215,7 @@ int requestTurn(char gameBoard[MAXROWS][MAXCOLUMNS], int boardSize){
     int turnColumn, turnRow;
     char validInput = 'F'; /*to be used as valid input condition in the while loop*/
     while (validInput != 'T'){
-        printf("Please enter your turn line number and column number: \n");
+        printf("Please enter your move, row and column:\n");
         scanf("%d %d", &turnRow, &turnColumn);
         if(turnRow == -1 && turnColumn > 0){
             validInput = 'T';
@@ -188,7 +226,8 @@ int requestTurn(char gameBoard[MAXROWS][MAXCOLUMNS], int boardSize){
         else if(turnColumn >= boardSize % 10 || turnRow >= boardSize / 100 ||
                 gameBoard[turnRow][turnColumn] == 0 || turnColumn < 0 || turnRow < -1 ||
                 gameBoard[turnRow][turnColumn] % 10 > 0){
-            printf("Invalid input!\n");
+            printf("Invalid move, please enter valid choice!\n");
+            printBoard(gameBoard,boardSize);
         }
         else{ /*all other inputs are valid*/
             validInput = 'T';
@@ -219,9 +258,18 @@ void printBoard(char gameBoard[MAXROWS][MAXCOLUMNS], int boardSize){
      * style it to look like a Minesweeper board*/
     int column = 0;
     int line = 0;
-    printf(" | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n-|--------------------------------\n"); /*print top row*/
+    int upperLine =0;
+    printf("  |");//TODO
+    for(upperLine=0; upperLine<(boardSize % 100);upperLine++) {
+        printf("%2d |",upperLine); /*print top row*/
+    }
+    printf("\n___"); //TODO
+    for(upperLine=0; upperLine<(boardSize % 100);upperLine++) {
+        printf("____"); /*print top row*/
+    }
+    printf("\n");
     for (line = 0; line < (boardSize / 100); line++) {
-        printf("%d|",line);/*print left column*/
+        printf("%2d|",line);/*print left column*/
         for (column = 0; column < (boardSize % 100); column++) {
             if((gameBoard[line][column] / 10) == 0){ /*is this an opened space*/
                 if(gameBoard[line][column] == 0){ /*is this a blank space?*/
@@ -267,4 +315,10 @@ int autoTurn(char gameBoard[MAXROWS][MAXCOLUMNS], int boardSize, int amountToExp
         }
     }
     return turnNumber;
+}
+
+int calculateMineAmount(int boardSize){ //TODO
+    int mineAmountToReturn;
+    mineAmountToReturn = sqrt((boardSize/100)*(boardSize%100));
+    return mineAmountToReturn;
 }
