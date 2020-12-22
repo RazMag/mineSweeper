@@ -24,6 +24,7 @@ void printBoard(char[MAXROWS][MAXCOLUMNS], int);
 int autoTurn(char[MAXROWS][MAXCOLUMNS], int, int, int, int);
 int requestCustomBoardSize();
 int calculateMineAmount(int);
+void printLineNumbers(int);
 
 void main() {
     /*Minesweeper implementation.
@@ -258,16 +259,7 @@ void printBoard(char gameBoard[MAXROWS][MAXCOLUMNS], int boardSize){
      * style it to look like a Minesweeper board*/
     int column = 0;
     int line = 0;
-    int upperLine =0;
-    printf("  |");//TODO
-    for(upperLine=0; upperLine<(boardSize % 100);upperLine++) {
-        printf("%2d |",upperLine); /*print top row*/
-    }
-    printf("\n___"); //TODO
-    for(upperLine=0; upperLine<(boardSize % 100);upperLine++) {
-        printf("____"); /*print top row*/
-    }
-    printf("\n");
+    printLineNumbers(boardSize);
     for (line = 0; line < (boardSize / 100); line++) {
         printf("%2d|",line);/*print left column*/
         for (column = 0; column < (boardSize % 100); column++) {
@@ -321,4 +313,17 @@ int calculateMineAmount(int boardSize){ //TODO
     int mineAmountToReturn;
     mineAmountToReturn = sqrt((boardSize/100)*(boardSize%100));
     return mineAmountToReturn;
+}
+
+void printLineNumbers(int boardSize){ //TODO
+    int index;
+    printf("  |");//TODO
+    for(index=0; index < (boardSize % 100); index++) {
+        printf("%2d |", index); /*print top row*/
+    }
+    printf("\n___"); //TODO
+    for(index=0; index < (boardSize % 100); index++) {
+        printf("____"); /*print top row*/
+    }
+    printf("\n");
 }
