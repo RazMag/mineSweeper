@@ -5,12 +5,16 @@
 #include <stdlib.h>
 #include <time.h> /*time() is broken without this header*/
 #include <math.h>
-//#include <stdbool.h>
 
 
 #define MAXCOLUMNS 23 /*project definitions state a max of 22 rows*/
 #define MAXROWS 23 /*project definitions state a max of 22 columns*/
 #define NUMTOASCII 48 /* used to convert a number into it's ASCII representation for printing*/
+#define TO_Y /100 /*convert YX int value to its Y value*/
+#define TO_X %100 /*convert YX int value to its X value*/
+#define MINE 100 /*mine value*/
+#define EMPTY_HIDDEN 10 /*empty hidden space value*/
+#define TO_STAR 33 /*convert opened mine value to "*"*/
 
 typedef struct boardSpaceSturct{
     char value;
@@ -61,7 +65,6 @@ void main() {
      * amount of 100s is the Y value
      * amount of 1s under 100 is the X value*/
     srand(time(NULL));  /*seed the random function for future use*/
-    setbuf(stdout, NULL); //TODO delete
     /*size of the playing field. will be an int with amount of 100's as the board height the boardSize%100 as the board width (a YX int for this code's purposes)*/
     int boardSize = requestGameVariation();
     if (boardSize == 0){  /*boardSize 0 meaning an exit was requested*/
@@ -72,13 +75,10 @@ void main() {
     boardSpace gameBoard[MAXROWS][MAXCOLUMNS]; /* create a game board with the maximum possible size of rows and columns (less relevant or part A)*/
     char loss = 'F'; /* used as condition to check if the board is in a lost state i.e a mine was selected */
     int mineAmount = calculateMineAmount(boardSize); /*amount of mines to place on the board, currently static for part A*/
-    int maxTurn = ((boardSize/100)*(boardSize%100))-mineAmount; /*maximum amount of turns that can be played. amount of spaces in the playing area minus the mine amount*/
-    int amountOfSpaces = ((boardSize/100)*(boardSize%100));
+    int maxTurn = ((boardSize TO_Y)*(boardSize TO_X))-mineAmount; /*maximum amount of turns that can be played. amount of spaces in the playing area minus the mine amount*/
+    int amountOfSpaces = ((boardSize TO_Y)*(boardSize TO_X)); /*total board spaces*/
     clearBoard(gameBoard);
     plantMines(gameBoard,mineAmount,boardSize);
-//    int turnCounterTest = 0;
-//    turnCounterTest = fillOpen(gameBoard,boardSize,0,0,turnCounterTest); //TODO main. why is this not working?
-//    printf("I have opened %d spaces for you master\n", turnCounterTest);
     printBoard(gameBoard,boardSize);
     while(openedSpaces < maxTurn){ /* while there are hidden non mines spaces */
         currentTurn = requestTurn(gameBoard,boardSize);
@@ -86,16 +86,18 @@ void main() {
             openedSpaces = autoTurn(gameBoard, boardSize, currentTurn.coordinate, maxTurn, openedSpaces,0);
         }
         else{
-            openedSpaces = fillOpen(gameBoard,boardSize,(currentTurn.coordinate/100)*100,currentTurn.coordinate%100,openedSpaces);
-            loss = makeTurn(gameBoard, currentTurn);
+            if(currentTurn.flagOrOpen=='O') { /*if turn is set to open, use fillOpen to open*/
+                openedSpaces = fillOpen(gameBoard, boardSize, (currentTurn.coordinate TO_Y),
+                                        currentTurn.coordinate TO_X, openedSpaces);
+            }
+            loss = makeTurn(gameBoard, currentTurn);/*use make turn to check if turn was a mine*/
             if (loss == 'T') { /*was the space a mine?*/
-                /*using autoTurn to expose the board on a lose, with maxTurn as a negative to make sure entire board in opened*/
+                /*using autoTurn to expose the board on a lose, with amountOfSpaces as a negative to make sure entire board in opened*/
                 autoTurn(gameBoard, boardSize, -amountOfSpaces, amountOfSpaces, openedSpaces,1);
                 printBoard(gameBoard,boardSize);
                 printf("You hit a mine. ~GAME OVER~\n");
                 return;
             }
-//            openedSpaces = fillOpen(gameBoard,boardSize,(currentTurn.coordinate/100)*100,currentTurn.coordinate%100,openedSpaces);
         }
         printBoard(gameBoard,boardSize);
     }
@@ -107,7 +109,7 @@ void clearBoard(boardSpace gameBoard[MAXROWS][MAXCOLUMNS]) {
     int currentColumn, currentRow;
     for (currentColumn = 0; currentColumn < MAXROWS; currentColumn++) {
         for (currentRow = 0; currentRow < MAXCOLUMNS; currentRow++) {
-            gameBoard[currentColumn][currentRow].value = 10;
+            gameBoard[currentColumn][currentRow].value = EMPTY_HIDDEN;
             gameBoard[currentColumn][currentRow].flagged = 'F';
         }
     }
@@ -158,7 +160,8 @@ int requestGameVariation() {
     return boardSizeToReturn;
 }
 
-int requestCustomBoardSize(){ //TODO
+int requestCustomBoardSize(){
+    /* request user input for custom board size, and return it as a YX int*/
     int boardSizeToReturn=0, lines, columns;
     char validInputFlag = 'F';
     while (validInputFlag == 'F') {
@@ -186,8 +189,8 @@ void plantMines(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int mineAmount, int b
     int currentMinePosition; /*will be used to refer to a mine's boardSpace on the board as a YX int*/
     while (mineAmount > 0) { /*plant mines until wanted amount is reached*/
         currentMinePosition = generateMineCoordinate(boardSize); /*generate a possible coordinates for a mine inside of the playing size*/
-        if (gameBoard[currentMinePosition/100][currentMinePosition%100].value != 100) { /*is this spot already "mined"?*/
-            gameBoard[currentMinePosition/100][currentMinePosition%100].value = 100;/*if not "mined", plant a mine*/
+        if (gameBoard[currentMinePosition TO_Y][currentMinePosition TO_X].value != MINE) { /*is this spot already "mined"?*/
+            gameBoard[currentMinePosition TO_Y][currentMinePosition TO_X].value = MINE;/*if not "mined", plant a mine*/
             mineAmount--;/*one less mine to plant*/
             addToSurroundingSpaces(gameBoard, currentMinePosition,boardSize);
         }
@@ -198,8 +201,8 @@ int generateMineCoordinate(int boardSize) {
     /* receives playing field size as a YX int (refer to main)
      * generate a random YX int inside of the playing field size */
     int mineToReturn = 0;
-    mineToReturn += (rand() % (boardSize/100))*100; /*make sure mine is in the playing field*/
-    mineToReturn += (rand() % (boardSize/100)); /*make sure mine is in the playing field*/
+    mineToReturn += (rand() % (boardSize TO_Y))*100; /*make sure mine is in the playing field*/
+    mineToReturn += (rand() % (boardSize TO_X)); /*make sure mine is in the playing field*/
     return mineToReturn;
 }
 
@@ -207,14 +210,14 @@ void addToSurroundingSpaces(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int mineL
     /* receive a gameBoard char matrix and a mineLocation (as a YX int, refer to main)
      * add 10 to each adjacent, non mine space to the mineLocation
      * within the playing field.*/
-    int column = (mineLocation/100)-1; /*start one column to the left of the mine location*/
-    int row = (mineLocation%100)-1; /*start one row above the mine location*/
-    for(column=column; column < (mineLocation/100)+2; column++){
-        if(column >=0 && column <(boardSize/100)){ /*make sure column value is in in the playing field*/
-            for(row = (mineLocation%100)-1; row < (mineLocation%100)+2; row++){
-                if(row >=0 && row <(boardSize%100)){ /*make sure row value is in in the playing field*/
-                    if(row != (boardSize%100)||column <(boardSize/100)) {
-                        if (gameBoard[column][row].value != 100) { /*make sure this is not a mine*/
+    int column = (mineLocation TO_Y)-1; /*start one column to the left of the mine location*/
+    int row = (mineLocation TO_X)-1; /*start one row above the mine location*/
+    for(column=column; column < (mineLocation TO_Y)+2; column++){
+        if(column >=0 && column <(boardSize TO_Y)){ /*make sure column value is in in the playing field*/
+            for(row = (mineLocation TO_X)-1; row < (mineLocation TO_X)+2; row++){
+                if(row >=0 && row <(boardSize TO_X)){ /*make sure row value is in in the playing field*/
+                    if(row != (boardSize TO_X)||column <(boardSize TO_Y)) {
+                        if (gameBoard[column][row].value != MINE) { /*make sure this is not a mine*/
                             gameBoard[column][row].value += 10; /*add 10*/
                         }
                     }
@@ -237,13 +240,13 @@ turn requestTurn(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int boardSize) {
     char flagOrOpen;
     char validInput = 'F'; /*to be used as valid input condition in the while loop*/
     while (validInput != 'T') {
-        printf("Please enter your move, row and column:\n");
+        printf("Please enter your move, row and column followed by \"O\" to open and \"F\" to flag:\n");
         scanf("%d %d", &turnRow, &turnColumn);
         if (turnRow != -1) {
             scanf(" %c", &flagOrOpen);
-            if (turnColumn >= boardSize % 100 || turnRow >= boardSize / 100 ||
-                gameBoard[turnRow][turnColumn].value == 0 || turnColumn < 0 || turnRow < -1 ||
-                gameBoard[turnRow][turnColumn].value % 10 > 0) {
+                 if(!isInBoardSize(boardSize,turnRow,turnColumn)||
+                    gameBoard[turnRow][turnColumn].value % 10 > 0|| /*is already open*/
+                    (flagOrOpen != 'F' && flagOrOpen != 'O')){
                 printf("Invalid move, please enter valid choice!\n");
                 printBoard(gameBoard, boardSize);
             } else { /*all other inputs are valid*/
@@ -254,27 +257,11 @@ turn requestTurn(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int boardSize) {
             }
         }
         else{
-            validInput = 'T';
-            turnToReturn.coordinate = -turnColumn;
+            if(turnColumn>0) {
+                validInput = 'T';
+                turnToReturn.coordinate = -turnColumn;
+            }
         }
-//        if (flagOrOpen == 'O') {
-//                /* check for the following: is column not in the playing field. is row not in the playing field.
-//                 * is this spot revealed and is a 0, is this spot revealed and is not a zero */
-//            else if (turnColumn >= boardSize % 10 || turnRow >= boardSize / 100 ||
-//                     gameBoard[turnRow][turnColumn].value == 0 || turnColumn < 0 || turnRow < -1 ||
-//                     gameBoard[turnRow][turnColumn].value % 10 > 0) {
-//                printf("Invalid move, please enter valid choice!\n");
-//                printBoard(gameBoard, boardSize);
-//            } else { /*all other inputs are valid*/
-//                validInput = 'T';
-//                turnToReturn += turnColumn; /*insert X value to a YX int*/
-//                turnToReturn += turnRow * 100; /*insert Y value to a YX int*/
-//            }
-//        }
-//        else{
-//            printf("Invalid move, please enter valid choice!\n");
-//        }
-//    }
     }
     return turnToReturn;
 }
@@ -284,24 +271,24 @@ char makeTurn(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], turn currentTurn){
      * returns 'T' if turn this spot is a mine
      * if turn is not a mine, reveal it (move amount of 10s to be amount of 1s and reduce 1) and return 'F'*/
     if(currentTurn.flagOrOpen == 'F'){
-        if(gameBoard[currentTurn.coordinate/100][currentTurn.coordinate%100].flagged == 'F'){
-            gameBoard[currentTurn.coordinate/100][currentTurn.coordinate%100].flagged = 'T';
+        if(gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].flagged == 'F'){
+            gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].flagged = 'T';
         }
         else
         {
-            gameBoard[currentTurn.coordinate/100][currentTurn.coordinate%100].flagged = 'F';
+            gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].flagged = 'F';
         }
         return 'F';
     }
-    if(gameBoard[currentTurn.coordinate/100][currentTurn.coordinate%100].value == 100){ /*is this a mine*/
+    if(gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].value == MINE){ /*is this a mine*/
         return 'T';
     }
     else{
-        if (gameBoard[currentTurn.coordinate/100][currentTurn.coordinate%100].value >=10) { //TODO dont double open
+        if (gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].value >=10) { /*if not opened*/
             /*move amount of 10s to be amount of 1s and reduce 1*/
-            gameBoard[currentTurn.coordinate / 100][currentTurn.coordinate % 100].value =
-                    (gameBoard[currentTurn.coordinate / 100][currentTurn.coordinate % 100].value / 10) - 1;
-            gameBoard[currentTurn.coordinate / 100][currentTurn.coordinate % 100].flagged = 'F';
+            gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].value =
+                    (gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].value / 10) - 1;
+            gameBoard[currentTurn.coordinate TO_Y][currentTurn.coordinate TO_X].flagged = 'F';
             return 'F';
         }
     }
@@ -314,9 +301,9 @@ void printBoard(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int boardSize){
     int column = 0;
     int line = 0;
     printLineNumbers(boardSize);
-    for (line = 0; line < (boardSize / 100); line++) {
+    for (line = 0; line < (boardSize TO_Y); line++) {
         printf("%2d|",line);/*print left column*/
-        for (column = 0; column < (boardSize % 100); column++) {
+        for (column = 0; column < (boardSize TO_X); column++) {
             if(gameBoard[line][column].flagged == 'T'){
                 printf(" F |");
             }
@@ -325,7 +312,7 @@ void printBoard(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int boardSize){
                     printf("   |");
                 }
                 else if(gameBoard[line][column].value == 9){
-                    printf(" %c |", (gameBoard[line][column].value) + 33); //TODO const
+                    printf(" %c |", (gameBoard[line][column].value) + TO_STAR);
                 }
                 else {
                     printf(" %c |", (gameBoard[line][column].value) + NUMTOASCII); /*print the number converted to ASCII*/
@@ -346,13 +333,14 @@ int autoTurn(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int boardSize, int amoun
      * reveal all non mine space in the playing field until, all spaces have been revealed or the amount to exposed has been revealed
      * returns the amount of revealed spaces*/
     int row, column;
-    for (row = 0; row < (boardSize / 100); row++) { /*start from the start of the array*/
+    for (row = 0; row < (boardSize TO_Y); row++) { /*start from the start of the array*/
         if(turnNumber<=maxTurn && amountToExpose < 0) { /*was the maximum turn number reached? did we finish opening spaces?*/
-            for (column = 0; column < (boardSize % 100); column++) {
+            for (column = 0; column < (boardSize TO_X); column++) {
                 if(turnNumber<=maxTurn && amountToExpose < 0) { /*was the maximum turn number reached? did we finish opening spaces?*/
                     /*check if the current space's value is between 8 (highest number a revealed space can be) and 100 (a mine)*/
                     if (gameBoard[row][column].value > 8 && gameBoard[row][column].value < 100+loss) {
                         gameBoard[row][column].value = (gameBoard[row][column].value / 10) - 1; /*move amount of 10s to be amount of 1s and reduce 1*/
+                        gameBoard[row][column].flagged = 'F';
                         turnNumber++;
                         amountToExpose++;
                     }
@@ -369,27 +357,29 @@ int autoTurn(boardSpace gameBoard[MAXROWS][MAXCOLUMNS], int boardSize, int amoun
     return turnNumber;
 }
 
-int calculateMineAmount(int boardSize){ //TODO
+int calculateMineAmount(int boardSize){
+    /*calculate mine amount to be the square root of the board's space*/
     int mineAmountToReturn;
-    mineAmountToReturn = sqrt((boardSize/100)*(boardSize%100));
+    mineAmountToReturn = sqrt((boardSize TO_Y)*(boardSize TO_X));
     return mineAmountToReturn;
 }
 
-void printLineNumbers(int boardSize){ //TODO
+void printLineNumbers(int boardSize){
+    /*print top line of indexes*/
     int index;
-    printf("  |");//TODO
-    for(index=0; index < (boardSize % 100); index++) {
+    printf("  |");
+    for(index=0; index < (boardSize TO_X); index++) {
         printf("%2d |", index); /*print top row*/
     }
-    printf("\n___"); //TODO
-    for(index=0; index < (boardSize % 100); index++) {
+    printf("\n___");
+    for(index=0; index < (boardSize TO_X); index++) {
         printf("____"); /*print top row*/
     }
     printf("\n");
 }
 
 char isInBoardSize(int boardSize ,int row,int column){
-    if (column >= boardSize % 100 || row/100 >= boardSize / 100 ||
+    if (column >= boardSize TO_X || row >= boardSize TO_Y ||
         column <0 ||row <0){
         return 'F';
     }
@@ -397,25 +387,27 @@ char isInBoardSize(int boardSize ,int row,int column){
 }
 
 int fillOpen(boardSpace gameBoard[MAXROWS][MAXCOLUMNS],int boardSize ,int row, int column, int turnCounter){
-//    int rowToPass = 0,columnToPass = 0;
+    /*receive game board, board size in game board, a turn row and column and turn counter.
+     * open all open spaces recursively from a given cell, returns turn counter + amount of cells opened*/
+    int i,j;
     turn turnToMake;
     turnToMake.flagOrOpen = 'O';
-    turnToMake.coordinate = 0;
-    turnToMake.coordinate += row+column;
-    if(isInBoardSize(boardSize,row,column) == 'F' || gameBoard[row/100][column].value < 10 || gameBoard[row/100][column].value == 100){
+    turnToMake.coordinate = (row*100)+column;
+    if(isInBoardSize(boardSize,row,column) == 'F' ||
+    gameBoard[row][column].value < 10 || /*is opened*/
+    gameBoard[row][column].value == MINE){ /*is mine*/
         return turnCounter;
     }
     makeTurn(gameBoard,turnToMake);
     turnCounter++;
-    if(gameBoard[row/100][column].value == 0) {
-        turnCounter = fillOpen(gameBoard, boardSize, row-100,column-1,turnCounter); //nW
-        turnCounter = fillOpen(gameBoard, boardSize, row, column - 1,turnCounter); //W
-        turnCounter = fillOpen(gameBoard, boardSize, row - 100, column,turnCounter); //n
-        turnCounter = fillOpen(gameBoard, boardSize, row+100,column+1,turnCounter); //se
-        turnCounter = fillOpen(gameBoard, boardSize, row + 100, column,turnCounter); //s
-        turnCounter = fillOpen(gameBoard, boardSize, row, column + 1,turnCounter); //e
-        turnCounter = fillOpen(gameBoard, boardSize, row+100,column-1,turnCounter); //sw
-        turnCounter = fillOpen(gameBoard, boardSize, row-100,column+1,turnCounter); //ne
+    if(gameBoard[row][column].value == 0) {
+        for(i=-1;i<2;i++){
+            for (j=-1; j <2 ; j++) {
+                if(i!=0||j!=0) {
+                    turnCounter = fillOpen(gameBoard, boardSize, row + i, column + j, turnCounter);
+                }
+            }
+        }
     }
     return turnCounter;
 }
